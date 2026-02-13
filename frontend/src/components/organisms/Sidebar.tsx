@@ -1,6 +1,17 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, LineChart, Wallet, Settings, LogOut, BarChart2 } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  LineChart, 
+  Wallet, 
+  Settings, 
+  LogOut, 
+  BarChart2, 
+  Zap, 
+  Bot, 
+  Radio, 
+  Layers 
+} from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 
@@ -13,6 +24,10 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: LineChart, label: 'Chart', path: '/chart' },
   { icon: BarChart2, label: 'Trades', path: '/trades' },
+  { icon: Radio, label: 'Signals', path: '/signals' },
+  { icon: Zap, label: 'Strategies', path: '/strategies' },
+  { icon: Layers, label: 'Strategy Builder', path: '/strategy-builder' },
+  { icon: Bot, label: 'Algo Trading', path: '/algo' },
   { icon: Wallet, label: 'Wallet', path: '/wallet' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];

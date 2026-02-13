@@ -6,25 +6,65 @@ import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { WalletPage } from '../features/wallet/routes/WalletPage';
 import { TradesPage } from '../features/trades/routes/TradesPage';
 import { ProtectedRoute } from '../components/ProtectedRoute';
-
-// Placeholder Pages
-const ChartPage = () => <div className="p-4 bg-white shadow rounded-lg">Chart Page Placeholder</div>;
-const SettingsPage = () => <div className="p-4 bg-white shadow rounded-lg">Settings Page Placeholder</div>;
+import { StrategyBuilderPage } from '../features/strategy-builder/pages/StrategyBuilderPage';
+import { ChartPage } from '../features/chart/pages/ChartPage';
+import { SettingsPage } from '../features/settings/pages/SettingsPage';
+import { StrategiesPage } from '../features/strategies/pages/StrategiesPage';
+import { AlgoPage } from '../features/algo/pages/AlgoPage';
+import { SignalsPage } from '../features/signal/pages/SignalsPage';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <ProtectedRoute />,
+    errorElement: <ErrorBoundary><div className="p-8 text-center">An error occurred. Please try again.</div></ErrorBoundary>,
     children: [
       {
         path: '/',
         element: <DashboardLayout />,
+        errorElement: <ErrorBoundary><div className="p-8 text-center">An error occurred loading the dashboard.</div></ErrorBoundary>,
         children: [
-          { index: true, element: <Dashboard /> },
-          { path: 'chart', element: <ChartPage /> },
-          { path: 'trades', element: <TradesPage /> },
-          { path: 'wallet', element: <WalletPage /> },
-          { path: 'settings', element: <SettingsPage /> },
+          { 
+            index: true, 
+            element: <ErrorBoundary><Dashboard /></ErrorBoundary> 
+          },
+          { 
+            path: 'chart', 
+            element: <ErrorBoundary><ChartPage /></ErrorBoundary> 
+          },
+          { 
+            path: 'trades', 
+            element: <ErrorBoundary><TradesPage /></ErrorBoundary> 
+          },
+          { 
+            path: 'signals', 
+            element: <ErrorBoundary><SignalsPage /></ErrorBoundary> 
+          },
+          { 
+            path: 'strategies', 
+            element: <ErrorBoundary><StrategiesPage /></ErrorBoundary> 
+          },
+          { 
+            path: 'algo', 
+            element: <ErrorBoundary><AlgoPage /></ErrorBoundary> 
+          },
+          { 
+            path: 'wallet', 
+            element: <ErrorBoundary><WalletPage /></ErrorBoundary> 
+          },
+          { 
+            path: 'strategy-builder', 
+            element: <ErrorBoundary><StrategyBuilderPage /></ErrorBoundary> 
+          },
+          { 
+            path: 'strategy-builder/:id', 
+            element: <ErrorBoundary><StrategyBuilderPage /></ErrorBoundary> 
+          },
+          { 
+            path: 'settings', 
+            element: <ErrorBoundary><SettingsPage /></ErrorBoundary> 
+          },
         ],
       },
     ],

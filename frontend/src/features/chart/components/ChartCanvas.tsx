@@ -123,7 +123,16 @@ export const ChartCanvas = forwardRef<ChartCanvasRef, {}>((_props, ref) => {
         if (!chartRef.current || historicalData.length === 0) return;
 
         // Clear existing indicators
-        indicatorSeriesRefs.current.forEach(series => chartRef.current?.removeSeries(series));
+        const chart = chartRef.current;
+        indicatorSeriesRefs.current.forEach(series => {
+            try {
+                if (series && chart) {
+                    chart.removeSeries(series);
+                }
+            } catch (error) {
+                console.warn('Error removing series:', error);
+            }
+        });
         indicatorSeriesRefs.current.clear();
 
         // Add active indicators
@@ -159,6 +168,23 @@ export const ChartCanvas = forwardRef<ChartCanvasRef, {}>((_props, ref) => {
             }
         });
 
+        // Cleanup function to prevent errors when component unmounts
+        return () => {
+            const chart = chartRef.current;
+            if (chart) {
+                indicatorSeriesRefs.current.forEach(series => {
+                    try {
+                        if (series) {
+                            chart.removeSeries(series);
+                        }
+                    } catch (error) {
+                        // Ignore errors during cleanup
+                    }
+                });
+            }
+            indicatorSeriesRefs.current.clear();
+        };
+
     }, [indicators, historicalData]);
 
     // 4. Update Realtime (Price & Signals)
@@ -187,7 +213,13 @@ export const ChartCanvas = forwardRef<ChartCanvasRef, {}>((_props, ref) => {
         if (!candleSeriesRef.current || !activeTrades) return;
 
         // Clear existing lines
-        priceLineRefs.current.forEach(line => candleSeriesRef.current?.removePriceLine(line));
+        if (candleSeriesRef.current) {
+            priceLineRefs.current.forEach(line => {
+                if (line && candleSeriesRef.current) {
+                    candleSeriesRef.current.removePriceLine(line);
+                }
+            });
+        }
         priceLineRefs.current = [];
 
         activeTrades.forEach(trade => {

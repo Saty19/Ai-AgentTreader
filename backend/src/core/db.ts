@@ -4,7 +4,9 @@ import path from 'path';
 import { config } from './config';
 
 export const pool = mysql.createPool(config.db);
+export const db = pool;
 
+// Initialize database and core tables only (no migrations)
 export async function initDB() {
   let connection;
   try {
@@ -86,8 +88,41 @@ export async function initDB() {
     if (statRows.length === 0) {
       await connection.query('INSERT INTO stats VALUES (1, 0, 0, 0, 0, 0, 0, 0)');
     }
+    
+    // 5. Post-Migration Schema Updates (Idempotent Alters) //
+    // Safe column additions for existing tables
+    await addColumnIfNotExists(connection, 'trades', 'user_id', 'INT');
+    await addColumnIfNotExists(connection, 'trades', 'strategy_id', 'INT');
+    
+    await addColumnIfNotExists(connection, 'signals', 'user_id', 'INT');
+    await addColumnIfNotExists(connection, 'signals', 'strategy_id', 'INT');
 
-    // 4. Run Migrations ////////////////////////////////////
+    console.log('Database initialized (migrations not run - use npm run cli migrate).');
+
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+    throw error; // Don't exit process, let server handle it
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
+// Run migrations - should only be called via CLI
+export async function runMigrations() {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    
+    // Ensure migrations table exists
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Run Migrations
     const migrationDir = path.join(__dirname, '../migrations');
     if (fs.existsSync(migrationDir)) {
         const files = fs.readdirSync(migrationDir).sort();
@@ -97,14 +132,14 @@ export async function initDB() {
 
         for (const file of files) {
             if (!file.endsWith('.sql')) continue;
-            if (executedMigrations.has(file)) continue;
+            if (executedMigrations.has(file)) {
+                console.log(`Skipping already executed migration: ${file}`);
+                continue;
+            }
 
             console.log(`Running migration: ${file}`);
             const sql = fs.readFileSync(path.join(migrationDir, file), 'utf8');
             
-            // Simple split by ';' might be fragile if SQL content has ';', but sufficient for now
-            // or just execute the whole file if it supports multi-statements (mysql2 pool usually doesn't by default unless configured)
-            // safer to split
             const statements = sql
                 .split(';')
                 .map(s => s.trim())
@@ -118,20 +153,12 @@ export async function initDB() {
             console.log(`Migration ${file} completed.`);
         }
     }
-    
-    // 5. Post-Migration Schema Updates (Idempotent Alters) //
-    // Safe column additions for existing tables
-    await addColumnIfNotExists(connection, 'trades', 'user_id', 'INT');
-    await addColumnIfNotExists(connection, 'trades', 'strategy_id', 'INT');
-    
-    await addColumnIfNotExists(connection, 'signals', 'user_id', 'INT');
-    await addColumnIfNotExists(connection, 'signals', 'strategy_id', 'INT');
 
-    console.log('Database initialized and up to date.');
+    console.log('All migrations completed successfully.');
 
   } catch (error) {
-    console.error('Database initialization failed:', error);
-    process.exit(1);
+    console.error('Migration failed:', error);
+    throw error;
   } finally {
     if (connection) connection.release();
   }
