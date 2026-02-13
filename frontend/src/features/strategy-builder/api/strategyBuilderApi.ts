@@ -144,6 +144,7 @@ class StrategyBuilderApiClient {
     return response.json();
   }
 
+
   // Block Management
 
   async getAvailableBlocks(): Promise<{ blocks: BlockTemplate[]; categories: string[] }> {

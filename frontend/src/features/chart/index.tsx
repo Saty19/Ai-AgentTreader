@@ -20,11 +20,11 @@ const ChartDataSynchronizer: React.FC<{ activeTrades?: any[] }> = ({ activeTrade
     return null;
 };
 
-export const AdvancedChart: React.FC<AdvancedChartProps> = ({ activeTrades }) => {
+export const ChartContent: React.FC<AdvancedChartProps> = ({ activeTrades }) => {
     const chartRef = React.useRef<any>(null);
 
     return (
-        <ChartProvider>
+        <>
             <ChartDataSynchronizer activeTrades={activeTrades} />
             <div className="flex flex-col h-[600px] border border-slate-200 bg-white shadow-sm rounded-lg overflow-hidden">
                 {/* Top Toolbar */}
@@ -40,6 +40,14 @@ export const AdvancedChart: React.FC<AdvancedChartProps> = ({ activeTrades }) =>
                     </div>
                 </div>
             </div>
+        </>
+    );
+};
+
+export const AdvancedChart: React.FC<AdvancedChartProps> = (props) => {
+    return (
+        <ChartProvider>
+            <ChartContent {...props} />
         </ChartProvider>
     );
 };

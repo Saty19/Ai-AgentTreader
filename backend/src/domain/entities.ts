@@ -45,10 +45,14 @@ export interface Signal {
   price: number;
   time: number;
   reason: string;
-  ema5: number;
-  ema26: number;
-  ema150: number;
-  angle: number;
+  ema5?: number;
+  ema26?: number;
+  ema150?: number;
+  angle?: number;
+  stopLoss?: number;
+  takeProfit?: number;
+  trend?: 'bullish' | 'bearish' | 'neutral';
+  volume?: number;
 }
 
 export interface Stats {

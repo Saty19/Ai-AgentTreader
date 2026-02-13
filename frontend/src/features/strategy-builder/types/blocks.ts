@@ -64,19 +64,54 @@ export interface StrategyBlock {
 }
 
 export interface StrategyDefinition {
-  id: string;
-  name: string;
-  description: string;
-  version: number;
-  blocks: StrategyBlock[];
-  connections: BlockConnection[];
-  metadata: {
-    createdAt: number;
-    updatedAt: number;
-    createdBy: string;
-    tags: string[];
+  id?: string;
+  name?: string;
+  description?: string;
+  version?: number;
+  blocks: SimpleBlock[];
+  connections: SimpleConnection[];
+  metadata?: {
+    createdAt?: number;
+    updatedAt?: number;
+    createdBy?: string;
+    tags?: string[];
+  };
+  status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  isPublic?: boolean;
+  userId?: string;
+  strategyDefinition?: {
+    blocks: SimpleBlock[];
+    connections: SimpleConnection[];
+    version?: number;
+    metadata?: any;
   };
 }
+
+// Simplified backward compatibility types
+export interface SimpleBlock {
+  id: string;
+  type: string;
+  position: BlockPosition;
+  properties?: Record<string, any>;
+  name?: string;
+}
+
+export interface SimpleConnection {
+  id?: string;
+  from: string;
+  to: string;
+  fromPort?: string;
+  toPort?: string;
+  sourceBlockId?: string;
+  targetBlockId?: string;
+  sourceOutput?: string;
+  targetInput?: string;
+  dataType?: DataType;
+}
+
+// Type aliases for compatibility
+export type Block = SimpleBlock;
+export type Connection = SimpleConnection;
 
 export interface CompiledStrategy {
   id: string;

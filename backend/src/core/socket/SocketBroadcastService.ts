@@ -30,4 +30,8 @@ export class SocketBroadcastService {
   emitStatsUpdate(stats: any) {
     this.io.emit('stats_update', stats);
   }
+
+  emitTradeUpdate(update: any) {
+    this.io.emit('trade_update', update);
+  }
 }

@@ -9,16 +9,20 @@ type Action =
   | { type: 'ADD_INDICATOR'; payload: IIndicator }
   | { type: 'REMOVE_INDICATOR'; payload: string }
   | { type: 'SET_STRATEGY'; payload: IStrategyPlugin | null }
-  | { type: 'SET_TRADES'; payload: any[] };
+  | { type: 'SET_TRADES'; payload: any[] }
+  | { type: 'SET_TOOL'; payload: ChartState['activeTool'] }
+  | { type: 'ADD_DRAWING'; payload: any }
+  | { type: 'REMOVE_DRAWING'; payload: number }; // timestamp or id
 
 const initialState: ChartState = {
   symbol: 'BTCUSDT',
   timeframe: '1m',
   market: 'crypto',
-  indicators: [],
+  indicators: [{ id: 'ema', name: 'EMA Strategy', type: 'overlay', calculate: () => [], draw: () => {} }],
   activeStrategy: null,
   drawings: [],
   activeTrades: [],
+  activeTool: 'cursor',
 };
 
 const chartReducer = (state: ChartState, action: Action): ChartState => {
@@ -26,10 +30,17 @@ const chartReducer = (state: ChartState, action: Action): ChartState => {
     case 'SET_SYMBOL': return { ...state, symbol: action.payload };
     case 'SET_TIMEFRAME': return { ...state, timeframe: action.payload };
     case 'SET_MARKET': return { ...state, market: action.payload };
-    case 'ADD_INDICATOR': return { ...state, indicators: [...state.indicators, action.payload] };
+    case 'ADD_INDICATOR': 
+        if (state.indicators.some(i => i.id === action.payload.id)) {
+            return state;
+        }
+        return { ...state, indicators: [...state.indicators, action.payload] };
     case 'REMOVE_INDICATOR': return { ...state, indicators: state.indicators.filter(i => i.id !== action.payload) };
     case 'SET_STRATEGY': return { ...state, activeStrategy: action.payload };
     case 'SET_TRADES': return { ...state, activeTrades: action.payload };
+    case 'SET_TOOL': return { ...state, activeTool: action.payload };
+    case 'ADD_DRAWING': return { ...state, drawings: [...state.drawings, action.payload] };
+    case 'REMOVE_DRAWING': return { ...state, drawings: state.drawings.filter(d => d.id !== action.payload) };
     default: return state;
   }
 };

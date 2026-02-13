@@ -3,10 +3,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useStats, useTrades } from './hooks/useDashboardData';
 import { useSocket } from '../../context/SocketContext';
 import { useWallet } from '../wallet/hooks/useWallet';
-// import { TradingChart } from './components/TradingChart'; // Replaced by AdvancedChart
 import { TradesTable } from './components/TradesTable';
 import { StatCard } from '../../components/molecules/StatCard';
 import { Badge } from '../../components/atoms/Badge';
+import { Loader } from '../../components/atoms/Loader';
 import { Activity, TrendingUp, DollarSign, BarChart2 } from 'lucide-react';
 import type { Stats, Trade } from '../../types';
 import { StrategyPanel } from '../strategies/components/StrategyPanel';
@@ -19,8 +19,10 @@ export const Dashboard: React.FC = () => {
   const { balance } = useWallet();
   const [lastSignal, setLastSignal] = useState<any>(null);
 
-  const { data: stats } = useStats();
-  const { data: trades } = useTrades();
+  const { data: stats, isLoading: statsLoading } = useStats();
+  const { data: trades, isLoading: tradesLoading } = useTrades();
+
+  const isLoading = statsLoading || tradesLoading;
 
   useEffect(() => {
     if (!socket) return;
@@ -46,16 +48,38 @@ export const Dashboard: React.FC = () => {
         setTimeout(() => setLastSignal(null), 5000); // Clear after 5s
     });
 
+    // Listen for live PnL updates
+    socket.on('trade_update', (update: any) => {
+        queryClient.setQueryData(['trades'], (old: Trade[] | undefined) => {
+            if (!old) return [];
+            return old.map(t => {
+                if (t.id === update.id) {
+                    return { ...t, pnl: update.pnl, exitPrice: update.currentPrice }; // Update PnL and "Current Price"
+                }
+                return t;
+            });
+        });
+    });
+
     return () => {
         socket.off('stats_update');
         socket.off('trade_open');
         socket.off('trade_close');
         socket.off('signal');
+        socket.off('trade_update');
     };
   }, [socket, queryClient]);
 
   const winRate = stats?.winRate ?? 0;
   const netPnl = stats?.netPnl ?? 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

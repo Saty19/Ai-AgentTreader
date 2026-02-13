@@ -86,22 +86,84 @@ export class IndicatorService {
       };
   }
 
-  getIndicators(prices: number[]) {
+  // Calculate EMA slope angle in degrees
+  calculateEMAAngle(emaValues: number[], timeIntervalMinutes: number = 1): number {
+    if (emaValues.length < 2) return 0;
+    
+    const currentEMA = emaValues[emaValues.length - 1];
+    const previousEMA = emaValues[emaValues.length - 2];
+    
+    // Calculate angle using arctangent
+    // angle = atan((EMA_now - EMA_prev) / time) * (180 / PI)
+    const priceDiff = currentEMA - previousEMA;
+    const timeDiff = timeIntervalMinutes; // time in minutes between candles
+    
+    const angleRadians = Math.atan(priceDiff / timeDiff);
+    const angleDegrees = angleRadians * (180 / Math.PI);
+    
+    return angleDegrees;
+  }
+
+  // Get trend direction based on EMA alignment
+  getTrendDirection(ema5: number, ema26: number, ema150: number): 'bullish' | 'bearish' | 'neutral' {
+    if (ema5 > ema26 && ema26 > ema150) return 'bullish';
+    if (ema5 < ema26 && ema26 < ema150) return 'bearish';
+    return 'neutral';
+  }
+
+  // Check if price is retesting EMA
+  isPriceNearEMA(currentPrice: number, ema: number, thresholdPercent: number = 0.5): boolean {
+    const diff = Math.abs(currentPrice - ema);
+    const threshold = ema * (thresholdPercent / 100);
+    return diff <= threshold;
+  }
+
+  // Check if candle is bullish
+  isBullishCandle(open: number, close: number, minBodyPercent: number = 0.3): boolean {
+    const bodySize = close - open;
+    if (bodySize <= 0) return false;
+    
+    // Body should be at least minBodyPercent of the price
+    const bodyPercent = (bodySize / open) * 100;
+    return bodyPercent >= minBodyPercent;
+  }
+
+  // Check if candle is bearish
+  isBearishCandle(open: number, close: number, minBodyPercent: number = 0.3): boolean {
+    const bodySize = open - close;
+    if (bodySize <= 0) return false;
+    
+    const bodyPercent = (bodySize / open) * 100;
+    return bodyPercent >= minBodyPercent;
+  }
+
+  getIndicators(prices: number[], candles?: any[]) {
       const ema5 = this.calculateEMA(5, prices);
       const ema26 = this.calculateEMA(26, prices);
       const ema150 = this.calculateEMA(150, prices);
       
-      // Angle calculation (simplified)
-      let angle = 0;
-      if (ema5 && ema150) {
-          angle = (ema5 - ema150) * 1000; // Mock scaling
+      // Get EMA series for angle calculation
+      const ema26Series = this.getEMASeries(26, prices);
+      const angle = this.calculateEMAAngle(ema26Series, 1);
+      
+      // Determine trend
+      const trend = ema5 && ema26 && ema150 
+        ? this.getTrendDirection(ema5, ema26, ema150)
+        : 'neutral';
+      
+      // Volume (if candles provided)
+      let volume = 0;
+      if (candles && candles.length > 0) {
+        volume = candles[candles.length - 1].volume || 0;
       }
 
       return {
           ema5,
           ema26,
           ema150,
-          angle
+          angle,
+          trend,
+          volume
       };
   }
 }

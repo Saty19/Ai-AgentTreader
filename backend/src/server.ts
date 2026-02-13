@@ -44,10 +44,12 @@ const socketService = new SocketBroadcastService(io);
 // Module Routes
 import marketRoutes from './modules/market/routes';
 import authRoutes from './modules/auth/routes';
+import algoRoutes from './modules/algo-engine/routes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/trades', tradeRoutes);
 app.use('/api/signals', signalRoutes);
+app.use('/api/algo', algoRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/strategies', strategyRoutes);
 app.use('/api/market', marketRoutes);

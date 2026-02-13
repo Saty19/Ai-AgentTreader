@@ -21,6 +21,22 @@ export async function fetchSignals(limit = 20) {
   return res.json();
 }
 
+export async function toggleAlgoStrategy(name: string, active: boolean) {
+    const res = await fetch(`${API_URL}/algo/strategy/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, active })
+    });
+    if (!res.ok) throw new Error('Failed to toggle strategy');
+    return res.json();
+}
+
+export async function fetchAlgoStatus() {
+    const res = await fetch(`${API_URL}/algo/status`);
+    if (!res.ok) throw new Error('Failed to fetch status');
+    return res.json();
+}
+
 export async function fetchCandles(symbol: string, interval: string, limit = 1000): Promise<ChartData[]> {
   // Check if we are in Mock/India mode or Crypto
   // For now, assume backend proxy or direct if CORS allows (unlikely for Binance direct)

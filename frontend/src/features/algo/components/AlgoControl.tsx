@@ -1,13 +1,38 @@
 import React, { useState } from 'react';
 import { Play, Square, Settings } from 'lucide-react';
+import { config } from '../../../config';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchAlgoStatus } from '../../../api/client';
 
 export const AlgoControl: React.FC = () => {
-  const [isRunning, setIsRunning] = useState(true); // Default to true as backend starts automatically
+  const queryClient = useQueryClient();
+  const { data: statusData } = useQuery({
+      queryKey: ['algoStatus'],
+      queryFn: fetchAlgoStatus,
+      refetchInterval: 3000
+  });
 
-  const toggle = () => {
-      // API call to start/stop would go here
-      setIsRunning(!isRunning);
+  const isRunning = statusData?.status === 'running';
+  const [isToggling, setIsToggling] = useState(false);
+
+  const toggle = async () => {
+      setIsToggling(true);
+      try {
+          const endpoint = isRunning ? '/api/algo/stop' : '/api/algo/start';
+          // Fix: API Client uses /algo/start, manual fetch usage here needs full path or helper
+          // Using fetch directly as originally done, but cleaner
+          const res = await fetch(`${config.apiBaseUrl}${endpoint}`, { method: 'POST' });
+          if (res.ok) {
+              queryClient.invalidateQueries({ queryKey: ['algoStatus'] });
+          }
+      } catch (e) {
+          console.error('Failed to toggle algo', e);
+      } finally {
+          setIsToggling(false);
+      }
   };
+
+  const isLoading = isToggling; // Compatible with existing UI logic
 
   return (
     <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
@@ -24,13 +49,14 @@ export const AlgoControl: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
              <button 
                 onClick={toggle}
+                disabled={isLoading}
                 className={`flex items-center justify-center space-x-2 py-3 rounded-lg font-semibold transition-colors ${
                     isRunning 
                     ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/50' 
                     : 'bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-500/20'
-                }`}
+                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
              >
-                {isRunning ? <><Square size={18} /> <span>Stop Algo</span></> : <><Play size={18} /> <span>Start Algo</span></>}
+                {isLoading ? <span>Loading...</span> : (isRunning ? <><Square size={18} /> <span>Stop Algo</span></> : <><Play size={18} /> <span>Start Algo</span></>)}
              </button>
              <button className="flex items-center justify-center space-x-2 py-3 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600 transition-colors">
                 <Settings size={18} />

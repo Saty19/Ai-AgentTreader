@@ -10,6 +10,7 @@ import { StrategyBuilderPage } from '../features/strategy-builder/pages/Strategy
 import { ChartPage } from '../features/chart/pages/ChartPage';
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
 import { StrategiesPage } from '../features/strategies/pages/StrategiesPage';
+import { StrategySettingsPage } from '../features/strategies/pages/StrategySettingsPage';
 import { AlgoPage } from '../features/algo/pages/AlgoPage';
 import { SignalsPage } from '../features/signal/pages/SignalsPage';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -44,6 +45,10 @@ export const router = createBrowserRouter([
           { 
             path: 'strategies', 
             element: <ErrorBoundary><StrategiesPage /></ErrorBoundary> 
+          },
+          { 
+            path: 'strategies/settings', 
+            element: <ErrorBoundary><StrategySettingsPage /></ErrorBoundary> 
           },
           { 
             path: 'algo', 

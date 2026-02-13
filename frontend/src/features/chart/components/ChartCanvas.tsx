@@ -17,14 +17,15 @@ export const ChartCanvas = forwardRef<ChartCanvasRef, {}>((_props, ref) => {
     const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
     const indicatorSeriesRefs = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
 
-    const { state } = useChartStore();
-    const { symbol, indicators, activeTrades = [] } = state;
+    const { state, dispatch } = useChartStore();
+    const { symbol, indicators, activeTrades = [], activeTool, drawings } = state;
     const { data: rawData, realtimeCandle } = useChartData();
     const { signals, realtimeSignal } = useChartSignals(symbol);
 
     const priceLineRefs = useRef<any[]>([]);
+    const customDrawingRefs = useRef<any[]>([]);
 
-    // Memoize and sanitize data to ensure strict number types for ChartData compatibility
+    // ... (memoize)
     const historicalData = useMemo(() => {
         if (!rawData || !Array.isArray(rawData)) return [];
         return [...rawData]
@@ -64,9 +65,19 @@ export const ChartCanvas = forwardRef<ChartCanvasRef, {}>((_props, ref) => {
                 timeVisible: true,
                 secondsVisible: false,
                 borderColor: '#e2e8f0',
+                rightOffset: 12, // Add space for future candles
+                barSpacing: 6,   // Better default spacing
             },
             rightPriceScale: {
                 borderColor: '#e2e8f0',
+                autoScale: true,
+            },
+            handleScale: {
+                axisPressedMouseMove: true,
+            },
+            handleScroll: {
+                pressedMouseMove: true,
+                vertTouchDrag: true,
             },
         });
 
@@ -118,6 +129,76 @@ export const ChartCanvas = forwardRef<ChartCanvasRef, {}>((_props, ref) => {
 
     }, [historicalData, signals]);
 
+    // Handle Map Interaction (Drawing)
+    useEffect(() => {
+        if (!chartRef.current || !candleSeriesRef.current) return;
+
+        const handleChartClick = (param: any) => {
+           if (!param.point || !candleSeriesRef.current) return;
+           
+           if (activeTool === 'horizontal') {
+               const price = candleSeriesRef.current.coordinateToPrice(param.point.y);
+               if (price) {
+                   dispatch({ 
+                       type: 'ADD_DRAWING', 
+                       payload: { id: Date.now(), type: 'horizontal', price: price } 
+                   });
+                   // Reset tool to cursor? Or keep drawing? Keep drawing is standard.
+               }
+           } else if (activeTool === 'eraser') {
+               // Simple "remove last" logic for now as hit testing is complex without overlay
+               // Or we can assume the user wants to clear if they click with eraser
+               // Better: Rely on Toolbar button for clear? 
+               // For this interaction: Find nearest drawing? Too complex for 1-shot.
+               // Let's implement Eraser as "Clear All Drawings" on click for MVP or just "Remove Last"
+               // Actually, let's make the Eraser tool Click remove the LAST drawing.
+               if (drawings.length > 0) {
+                   dispatch({ type: 'REMOVE_DRAWING', payload: drawings[drawings.length - 1].id });
+               }
+           }
+        };
+
+        chartRef.current.subscribeClick(handleChartClick);
+        return () => {
+            if (chartRef.current) {
+                // unsubscribeClick is not always available in all versions or called differently?
+                // LW Charts 3.x/4.x supports subscribeClick.
+                try {
+                    chartRef.current.unsubscribeClick(handleChartClick);
+                } catch(e) {}
+            }
+        };
+    }, [activeTool, drawings, dispatch]);
+
+    // Render Drawings
+    useEffect(() => {
+        if (!candleSeriesRef.current) return;
+
+        // Clear old
+        customDrawingRefs.current.forEach(line => {
+            try {
+                candleSeriesRef.current!.removePriceLine(line);
+            } catch(e) {}
+        });
+        customDrawingRefs.current = [];
+
+        // Add new
+        drawings.forEach(d => {
+            if (d.type === 'horizontal') {
+                const line = candleSeriesRef.current!.createPriceLine({
+                    price: d.price,
+                    color: '#8b5cf6', // Violet
+                    lineWidth: 2,
+                    lineStyle: 0,
+                    axisLabelVisible: true,
+                    title: 'Line',
+                });
+                customDrawingRefs.current.push(line);
+            }
+        });
+
+    }, [drawings]);
+
     // 3. Process Indicators (EMA & RSI)
     useEffect(() => {
         if (!chartRef.current || historicalData.length === 0) return;
@@ -136,16 +217,46 @@ export const ChartCanvas = forwardRef<ChartCanvasRef, {}>((_props, ref) => {
         indicatorSeriesRefs.current.clear();
 
         // Add active indicators
+        // Use Set to prevent duplicate re-additions if state somehow has duplicates (though context safeguards this now)
+        const processedIds = new Set<string>();
+
         indicators.forEach(ind => {
+            if (processedIds.has(ind.id)) return;
+            processedIds.add(ind.id);
+
             if (ind.id === 'ema') {
-                const lineSeries = chartRef.current!.addSeries(LineSeries, {
-                    color: '#3b82f6', // Blue-500
-                    lineWidth: 2,
-                    title: 'EMA 20',
+                // EMA 5 (Fast - Green)
+                const ema5Series = chartRef.current!.addSeries(LineSeries, {
+                    color: '#10b981', 
+                    lineWidth: 1,
+                    title: 'EMA 5',
+                    crosshairMarkerVisible: false,
                 });
-                const emaData = calculateEMA(historicalData, 20);
-                lineSeries.setData(emaData);
-                indicatorSeriesRefs.current.set(ind.id, lineSeries);
+                const ema5Data = calculateEMA(historicalData, 5);
+                ema5Series.setData(ema5Data);
+                indicatorSeriesRefs.current.set('ema5', ema5Series);
+
+                // EMA 26 (Medium - Blue)
+                const ema26Series = chartRef.current!.addSeries(LineSeries, {
+                    color: '#3b82f6', 
+                    lineWidth: 2,
+                    title: 'EMA 26',
+                    crosshairMarkerVisible: false,
+                });
+                const ema26Data = calculateEMA(historicalData, 26);
+                ema26Series.setData(ema26Data);
+                indicatorSeriesRefs.current.set('ema26', ema26Series);
+
+                // EMA 150 (Slow - Orange)
+                const ema150Series = chartRef.current!.addSeries(LineSeries, {
+                    color: '#f97316', 
+                    lineWidth: 2,
+                    title: 'EMA 150',
+                    crosshairMarkerVisible: false,
+                });
+                const ema150Data = calculateEMA(historicalData, 150);
+                ema150Series.setData(ema150Data);
+                indicatorSeriesRefs.current.set('ema150', ema150Series);
             }
             else if (ind.id === 'rsi') {
                 const rsiSeries = chartRef.current!.addSeries(LineSeries, {

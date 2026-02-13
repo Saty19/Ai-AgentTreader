@@ -10,6 +10,8 @@ export class StrategyRunner {
     const signals: Signal[] = [];
 
     for (const strategy of strategies) {
+      if (!this.registry.isEnabled(strategy.name)) continue;
+
       try {
         const signal = await strategy.onCandle(candle);
         if (signal) {

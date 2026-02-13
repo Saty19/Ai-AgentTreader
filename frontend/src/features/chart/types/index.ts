@@ -34,4 +34,5 @@ export interface ChartState {
   activeStrategy: IStrategyPlugin | null;
   drawings: any[]; // Placeholder for drawings
   activeTrades?: any[];
+  activeTool: 'cursor' | 'trendline' | 'horizontal' | 'brush' | 'eraser';
 }

@@ -17,6 +17,7 @@ export class TradingOrchestrator {
   private strategyRunner: StrategyRunner;
   private brokerManager: BrokerManager;
   private executionService: ExecutionService;
+  private isRunning: boolean = false;
   
   private static instance: TradingOrchestrator;
 
@@ -55,6 +56,8 @@ export class TradingOrchestrator {
   }
 
   start() {
+    if (this.isRunning) return;
+    this.isRunning = true;
     console.log('Starting Trading Orchestrator...');
     
     this.binanceService.setDataCallback(async (candle: Candle) => {
@@ -87,9 +90,23 @@ export class TradingOrchestrator {
 
   stop() {
     this.binanceService.stop();
+    this.isRunning = false;
   }
   
   getRegistry() {
       return this.strategyRegistry;
+  }
+
+  isOrchestratorRunning() {
+      return this.isRunning;
+  }
+
+  toggleStrategy(name: string, active: boolean) {
+      if (active) this.strategyRegistry.enable(name);
+      else this.strategyRegistry.disable(name);
+  }
+
+  getStrategyStatus() {
+      return this.strategyRegistry.getStatus();
   }
 }
